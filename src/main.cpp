@@ -1,9 +1,13 @@
 #include <iostream>
 
 #include "tensor_cpu.hpp"
+#include "matrix_cpu.hpp"
+#include "vector_cpu.hpp"
 
 int main()
 {
+        // TENSOR
+
         // scalar tensor
         Tensor<int, 0, 1> scalar;
         std::cout << "Tensor scalar:\n";
@@ -112,4 +116,61 @@ int main()
         Tensor<float, 3, 27> tensorTransposed = tensorTransposable.transpose(0, 2);
         std::cout << "Tensor 3x3x3 transposed:\n";
         tensorTransposed.print();
+
+        // squeeze test
+        Tensor<float, 3, 27> tensorSqueezable({1, 1, 27});
+        std::cout << "Tensor 1x1x27:\n";
+        tensorSqueezable.print();
+        Tensor<float, 2, 27> tensorSqueezed = tensorSqueezable.squeeze();
+        std::cout << "Tensor 1x1x27 squeezed to 1x27:\n";
+        tensorSqueezed.print();
+
+        // unsqueeze test
+        Tensor<float, 3, 27> tensorUnsqueezed = tensorSqueezed.unsqueeze(0);
+        std::cout << "Tensor 1x27 unsqueezed to 1x1x27:\n";
+        tensorUnsqueezed.print();
+
+        // combine test
+        Tensor<float, 2, 4> matrixCombining1(1.0f);
+        Tensor<float, 2, 4> matrixCombining2(2.0f);
+        std::cout << "Matrix 2x2:\n";
+        matrixCombining1.print();
+        Tensor<float, 2, 8> matrixCombined = matrixCombining1.combine(matrixCombining2, 0);
+        std::cout << "Matrix 2x2 combined with 2x2 along axis 0 (vertical):\n";
+        matrixCombined.print();
+
+        // MATRIX
+
+        // matrix multiplication test
+        Matrix<float, 3, 3> matrix1M(2.0f);
+        std::cout << "Matrix 3x3:\n";
+        matrix1M.print();
+        Matrix<float, 3, 3> matrix2M(3.0f);
+        std::cout << "Matrix 3x3:\n";
+        matrix2M.print();
+        std::cout << "Matrix product of 2 3x3 matricies:\n";
+        (matrix1M * matrix2M).print();
+
+        // matrix transpose test
+        Matrix<float, 3, 3> matrixTransposableM;
+        matrixTransposableM(0, 0) = 1;
+        matrixTransposableM(0, 1) = 2;
+        matrixTransposableM(0, 2) = 3;
+        matrixTransposableM(1, 0) = 4;
+        matrixTransposableM(1, 1) = 5;
+        matrixTransposableM(1, 2) = 6;
+        matrixTransposableM(2, 0) = 7;
+        matrixTransposableM(2, 1) = 8;
+        matrixTransposableM(2, 2) = 9;
+        std::cout << "Matrix 3x3:\n";
+        matrixTransposableM.print();
+        Matrix<float, 3, 3> transposedM = matrixTransposableM.transpose();
+        std::cout << "Matrix 3x3 transposed:\n";
+        transposedM.print();
+
+        // VECTOR
+
+        Vector<float, 3> vector1(1.0f);
+        std::cout << "Vector 3:\n";
+        vector1.print();
 }

@@ -8,14 +8,12 @@
 #include <string>
 #include <cmath>
 #include <iomanip>
+#include <algorithm>
 
 #include "heaparray.hpp"
 #include "assert_utils.hpp"
 
 // TODO: implement tensor operations:
-// - squeeze (remove dimensions with size 1)
-// - unsqueeze (add dimension with size 1)
-// - combine (combine two tensors along a dimension)
 // - product (generalized kronecker product)
 
 // TODO: optimize functions with multitheading and other
@@ -335,6 +333,67 @@ public:
                         result(newIndices) = (*this)(indices);
                 }
 
+                return result;
+        }
+
+        Tensor<T, R - 1, S> squeeze() const
+        {
+                static_assert(R > 0, "Cannot squeeze a tensor with rank 0.");
+                if (std::find(mShape.begin(), mShape.end(), 1) == mShape.end())
+                        throw std::runtime_error("No dimensions with size 1 to squeeze.");
+                std::array<uint64_t, R - 1> newShape;
+                bool squeezed = false;
+                for (uint64_t i = 0, j = 0; i < R; i++)
+                {
+                        if (mShape[i] != 1 || squeezed)
+                        {
+                                newShape[j++] = mShape[i];
+                        }
+                        else
+                        {
+                                squeezed = true;
+                        }
+                }
+                return reshape(newShape);
+        }
+
+        Tensor<T, R + 1, S> unsqueeze(uint64_t dim) const
+        {
+                if (dim > R)
+                        throw std::out_of_range("Invalid dimension for unsqueeze.");
+                std::array<uint64_t, R + 1> newShape;
+                for (uint64_t i = 0, j = 0; i < R + 1; i++)
+                {
+                        if (i == dim)
+                        {
+                                newShape[i] = 1;
+                        }
+                        else
+                        {
+                                newShape[i] = mShape[j++];
+                        }
+                }
+                return reshape(newShape);
+        }
+
+        template <uint64_t S2>
+        Tensor<T, R, S + S2> combine(const Tensor<T, R, S2> &tensor, uint64_t dim) const
+        {
+                if (dim > R)
+                        throw std::out_of_range("Invalid dimension for combine.");
+                if (mShape[dim] != tensor.shape()[dim])
+                        throw std::runtime_error("Size of the combined dimension must match.");
+                std::array<uint64_t, R> newShape = mShape;
+                newShape[dim] += tensor.shape()[dim];
+                Tensor<T, R, S + S2> result(newShape);
+                for (uint64_t i = 0; i < S; i++)
+                {
+                        result[i] = mTensor[i];
+                }
+                for (uint64_t i = 0; i < S2; i++)
+                {
+                        result[S + i] = tensor[i];
+                }
                 return result;
         }
 
