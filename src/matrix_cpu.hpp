@@ -5,6 +5,7 @@
 
 // TODO: determine at which size to use Strassen algorithm for matrix multiplication
 // TODO: implement Strassen algorithm for matrix multiplication
+// TODO: implement better way to calculate determinant (currently using Laplace Expansion O(n!))
 
 // TODO: optimize functions with multitheading and other
 
