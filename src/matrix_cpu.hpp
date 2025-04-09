@@ -2,6 +2,8 @@
 #define MATRIX_CPU_HPP
 
 #include "tensor_cpu.hpp"
+#include "pack.hpp"
+#include "vector_cpu.hpp"
 
 // TODO: determine at which size to use Strassen algorithm for matrix multiplication
 // TODO: implement Strassen algorithm for matrix multiplication
@@ -15,6 +17,7 @@
 template <typename T, uint64_t R, uint64_t C, bool = (R * C < BIG_MATRIX_SIZE)>
 class Matrix;
 
+// base Matrix class
 template <typename T, uint64_t R, uint64_t C>
 class Matrix<T, R, C, true> : public Tensor<T, 2, R * C>
 {
@@ -156,8 +159,95 @@ public:
                 }
                 return result;
         }
+
+        Matrix<T, R, R> decomposeLU(Matrix<T, R, R> &P)
+        {
+                Matrix<T, R, C> U = *this;
+
+                Matrix<T, R, R> L;
+                for (size_t i = 0; i < R; i++)
+                {
+                        for (size_t j = 0; j < R; j++)
+                        {
+                                L(i, j) = (i == j) ? static_cast<T>(1) : static_cast<T>(0);
+                        }
+                }
+
+                for (size_t i = 0; i < R; i++)
+                {
+                        for (size_t j = 0; j < R; j++)
+                        {
+                                P(i, j) = (i == j) ? static_cast<T>(1) : static_cast<T>(0);
+                        }
+                }
+
+                for (size_t i = 0; i < R; i++)
+                {
+                        T max = std::abs(U(i, i));
+                        size_t pivot = i;
+                        for (size_t j = i + 1; j < R; j++)
+                        {
+                                if (std::abs(U(j, i)) > max)
+                                {
+                                        max = std::abs(U(j, i));
+                                        pivot = j;
+                                }
+                        }
+                        if (max == static_cast<T>(0))
+                        {
+                                throw std::runtime_error("Matrix is singular.");
+                        }
+
+                        if (pivot != i)
+                        {
+                                for (size_t j = 0; j < C; j++)
+                                {
+                                        std::swap(U(i, j), U(pivot, j));
+                                }
+                                for (size_t j = 0; j < i; j++)
+                                {
+                                        std::swap(L(i, j), L(pivot, j));
+                                }
+                                for (size_t j = 0; j < R; j++)
+                                {
+                                        std::swap(P(i, j), P(pivot, j));
+                                }
+                        }
+
+                        for (size_t j = i + 1; j < R; j++)
+                        {
+                                L(j, i) = U(j, i) / U(i, i);
+                                for (size_t k = i; k < C; k++)
+                                {
+                                        U(j, k) -= L(j, i) * U(i, k);
+                                }
+                        }
+                }
+
+                *this = U;
+                return L;
+        }
+
+        template <uint64_t S>
+        Vector<T, S> operator*(const Vector<T, S> &vector) const
+        {
+                static_assert(C == S, "Matrix multiplication is only possible if the number of columns of the matrix is equal to the size of the vector.");
+                Vector<T, S> result;
+                for (uint64_t i = 0; i < R; i++)
+                {
+                        T sum = 0;
+                        for (uint64_t j = 0; j < C; j++)
+                        {
+                                sum += (*this)(i, j) * vector(j);
+                        }
+                        result(i) = sum;
+                }
+                return result;
+        }
 };
 
+
+// big Matrix class
 template <typename T, uint64_t R, uint64_t C>
 class Matrix<T, R, C, false> : public Tensor<T, 2, R * C>
 {
