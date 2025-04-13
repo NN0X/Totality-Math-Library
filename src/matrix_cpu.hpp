@@ -2,7 +2,6 @@
 #define MATRIX_CPU_HPP
 
 #include "tensor_cpu.hpp"
-#include "pack.hpp"
 #include "vector_cpu.hpp"
 
 // TODO: determine at which size to use Strassen algorithm for matrix multiplication
@@ -160,16 +159,18 @@ public:
                 return result;
         }
 
-        Matrix<T, R, R> decomposeLU(Matrix<T, R, R> &P)
+        Matrix<T, R, R> decomposeLU(Matrix<T, R, R> &permutationMatrix) // TODO: optimize-out std::swap
         {
-                Matrix<T, R, C> U = *this;
+                Matrix<T, R, C> uMatrix = *this;
+                Matrix<T, R, R> lMatrix(0);
+                permutationMatrix = Matrix<T, R, R>(0);
 
-                Matrix<T, R, R> L;
                 for (size_t i = 0; i < R; i++)
                 {
                         for (size_t j = 0; j < R; j++)
                         {
-                                L(i, j) = (i == j) ? static_cast<T>(1) : static_cast<T>(0);
+                                if (i == j)
+                                        lMatrix(i, j) = static_cast<T>(1);
                         }
                 }
 
@@ -177,19 +178,20 @@ public:
                 {
                         for (size_t j = 0; j < R; j++)
                         {
-                                P(i, j) = (i == j) ? static_cast<T>(1) : static_cast<T>(0);
+                                if (i == j)
+                                        permutationMatrix(i, j) = static_cast<T>(1);
                         }
                 }
 
                 for (size_t i = 0; i < R; i++)
                 {
-                        T max = std::abs(U(i, i));
+                        T max = std::abs(uMatrix(i, i));
                         size_t pivot = i;
                         for (size_t j = i + 1; j < R; j++)
                         {
-                                if (std::abs(U(j, i)) > max)
+                                if (std::abs(uMatrix(j, i)) > max)
                                 {
-                                        max = std::abs(U(j, i));
+                                        max = std::abs(uMatrix(j, i));
                                         pivot = j;
                                 }
                         }
@@ -202,30 +204,30 @@ public:
                         {
                                 for (size_t j = 0; j < C; j++)
                                 {
-                                        std::swap(U(i, j), U(pivot, j));
+                                        std::swap(uMatrix(i, j), uMatrix(pivot, j));
                                 }
                                 for (size_t j = 0; j < i; j++)
                                 {
-                                        std::swap(L(i, j), L(pivot, j));
+                                        std::swap(lMatrix(i, j), lMatrix(pivot, j));
                                 }
                                 for (size_t j = 0; j < R; j++)
                                 {
-                                        std::swap(P(i, j), P(pivot, j));
+                                        std::swap(permutationMatrix(i, j), permutationMatrix(pivot, j));
                                 }
                         }
 
                         for (size_t j = i + 1; j < R; j++)
                         {
-                                L(j, i) = U(j, i) / U(i, i);
+                                lMatrix(j, i) = uMatrix(j, i) / uMatrix(i, i);
                                 for (size_t k = i; k < C; k++)
                                 {
-                                        U(j, k) -= L(j, i) * U(i, k);
+                                        uMatrix(j, k) -= lMatrix(j, i) * uMatrix(i, k);
                                 }
                         }
                 }
 
-                *this = U;
-                return L;
+                *this = uMatrix;
+                return lMatrix;
         }
 
         template <uint64_t S>
